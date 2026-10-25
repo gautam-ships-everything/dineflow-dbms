@@ -111,11 +111,4 @@ Once the server is running, click on **"DBMS Concepts Lab"** in the top navigati
 
 ---
 
-## 📄 Project Documentation & Report
-The official formatted project report has been generated in Microsoft Word format (`.docx`) matching the college format:
-- **`DBMS/docs/0808CS241120_dbmsReport.docx`**
-- Also placed in parent folder: **`../docs/0808CS241120_dbmsReport.docx`**
-- Full Markdown report: **`DBMS/docs/0808CS241120_DBMS_PROJECT_REPORT.md`**
 
----
-*IPS Academy Indore &bull; Institute of Engineering & Science &bull; CSE Department (2026-27)*
