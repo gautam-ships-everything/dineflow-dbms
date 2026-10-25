@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block title %}Tables & Seating Management - DineFlow{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Dining Tables & Seating Management</h1>
+        <p class="page-subtitle">Track table occupancy, seating sections, and manage customer table reservations.</p>
+    </div>
+</div>
+
+<div class="grid-2">
+    <!-- Tables Floor Plan -->
+    <div class="card">
+        <div class="card-title">
+            <span><i class="fa-solid fa-chair"></i> Restaurant Seating Layout</span>
+            <span class="badge badge-info">{{ tables|length }} Total Tables</span>
+        </div>
+        <div class="floor-grid">
+            {% for t in tables %}
+            <div class="table-box {{ t.status|lower }}">
+                <div class="tbl-num">{{ t.table_number }}</div>
+                <div class="tbl-sec">{{ t.seating_section }}</div>
+                <div style="font-size:0.8rem; color:#64748b; margin-top:2px;">Capacity: <strong>{{ t.capacity }} Persons</strong></div>
+                <div style="margin-top:10px;">
+                    {% if t.status == 'Available' %}
+                        <span class="badge badge-success">Available</span>
+                    {% elif t.status == 'Occupied' %}
+                        <span class="badge badge-danger">Occupied</span>
+                    {% elif t.status == 'Reserved' %}
+                        <span class="badge badge-warning">Reserved</span>
+                    {% else %}
+                        <span class="badge badge-secondary">Maintenance</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Reservations & Booking Form -->
+    <div>
+        <!-- New Reservation Card -->
+        <div class="card">
+            <div class="card-title">
+                <span><i class="fa-regular fa-calendar-check"></i> Book / Reserve Table</span>
+            </div>
+            <form action="{{ url_for('reserve_table') }}" method="POST">
+                <div class="form-group">
+                    <label>Select Customer</label>
+                    <select name="customer_id" class="form-control" required>
+                        <option value="">-- Choose Customer --</option>
+                        {% for c in customers %}
+                        <option value="{{ c.customer_id }}">{{ c.name }} ({{ c.phone }}) - {{ c.loyalty_points }} pts</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Select Table</label>
+                    <select name="table_id" class="form-control" required>
+                        <option value="">-- Choose Table --</option>
+                        {% for t in tables %}
+                        <option value="{{ t.table_id }}">{{ t.table_number }} ({{ t.seating_section }} - Cap: {{ t.capacity }} seats) - [{{ t.status }}]</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                    <div class="form-group">
+                        <label>Reservation Time</label>
+                        <input type="datetime-local" name="reservation_time" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Guest Count</label>
+                        <input type="number" name="guest_count" min="1" max="20" class="form-control" value="2" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Special Requests (e.g., Anniversary, High chair, Window view)</label>
+                    <input type="text" name="special_requests" class="form-control" placeholder="Optional guest requests">
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width:100%;">
+                    <i class="fa-solid fa-check"></i> Confirm Reservation (FK & Trigger Verification)
+                </button>
+            </form>
+        </div>
+
+        <!-- Active Reservations List -->
+        <div class="card">
+            <div class="card-title">
+                <span><i class="fa-solid fa-list-check"></i> Upcoming Reservations</span>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Guest</th>
+                            <th>Table</th>
+                            <th>Date / Time</th>
+                            <th>Party</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in reservations %}
+                        <tr>
+                            <td>
+                                <strong>{{ r.customer_name }}</strong><br>
+                                <small style="color:#64748b;">{{ r.customer_phone }}</small>
+                            </td>
+                            <td><span class="badge badge-info">{{ r.table_number }}</span></td>
+                            <td>{{ r.reservation_time }}</td>
+                            <td>{{ r.guest_count }} Guests</td>
+                            <td><span class="badge badge-warning">{{ r.status }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

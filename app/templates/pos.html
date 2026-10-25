@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}Point of Sale (POS) & Billing - DineFlow{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Point of Sale (POS) & Bill Generation</h1>
+        <p class="page-subtitle">Real-time order creation, item addition, dynamic subtotal calculation via Triggers, and table occupancy.</p>
+    </div>
+</div>
+
+<div class="grid-2">
+    <!-- Left Column: Menu Item Selector -->
+    <div>
+        <div class="card">
+            <div class="card-title">
+                <span><i class="fa-solid fa-list"></i> Select Menu Items</span>
+            </div>
+            
+            <div style="display:flex; flex-direction:column; gap:10px; max-height:480px; overflow-y:auto; padding-right:6px;">
+                {% for item in items %}
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; border:1px solid #e2e8f0; border-radius:10px; background:#ffffff;">
+                    <div>
+                        <div style="font-weight:700; font-size:0.95rem;">
+                            {{ item.name }}
+                            {% if item.dietary_type == 'Veg' %}
+                                <span class="badge badge-success" style="font-size:0.65rem;">Veg</span>
+                            {% elif item.dietary_type == 'Non-Veg' %}
+                                <span class="badge badge-danger" style="font-size:0.65rem;">Non-Veg</span>
+                            {% else %}
+                                <span class="badge badge-info" style="font-size:0.65rem;">Vegan</span>
+                            {% endif %}
+                        </div>
+                        <div style="font-size:0.8rem; color:#64748b;">Prep: {{ item.preparation_time_mins }}m &bull; ₹{{ "%.2f"|format(item.price) }}</div>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" onclick="addToCart({{ item.item_id }}, '{{ item.name }}', {{ item.price }})">
+                        <i class="fa-solid fa-plus"></i> Add
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Order Configuration & Cart -->
+    <div>
+        <div class="card">
+            <div class="card-title">
+                <span><i class="fa-solid fa-cart-shopping"></i> Order Details & Bill Summary</span>
+            </div>
+
+            <!-- Order Settings -->
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:14px;">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Order Type</label>
+                    <select id="pos-type-select" class="form-control">
+                        <option value="Dine-In">Dine-In</option>
+                        <option value="Takeaway">Takeaway</option>
+                        <option value="Delivery">Delivery</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Dining Table</label>
+                    <select id="pos-table-select" class="form-control">
+                        <option value="">-- No Table (Takeaway) --</option>
+                        {% for t in tables %}
+                        <option value="{{ t.table_id }}">{{ t.table_number }} ({{ t.seating_section }} - Cap: {{ t.capacity }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:16px;">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Customer</label>
+                    <select id="pos-customer-select" class="form-control">
+                        <option value="">-- Guest / Walk-in --</option>
+                        {% for c in customers %}
+                        <option value="{{ c.customer_id }}">{{ c.name }} ({{ c.phone }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Assigned Waiter</label>
+                    <select id="pos-waiter-select" class="form-control">
+                        {% for w in waiters %}
+                        <option value="{{ w.user_id }}">{{ w.full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Live Cart Items -->
+            <div style="border-top:1px dashed #cbd5e1; padding-top:12px; margin-bottom:14px;">
+                <label style="font-size:0.85rem; font-weight:700; color:#334155; margin-bottom:8px; display:block;">Selected Items</label>
+                <div id="cart-items-container" style="min-height:90px; max-height:180px; overflow-y:auto;">
+                    <div style="text-align:center; padding: 25px; color:#94a3b8;">Cart is empty. Select menu items to create an order.</div>
+                </div>
+            </div>
+
+            <!-- Bill Totals -->
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px; margin-bottom:18px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:0.9rem;">
+                    <span style="color:#64748b;">Subtotal:</span>
+                    <strong id="cart-subtotal">₹0.00</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:0.9rem;">
+                    <span style="color:#64748b;">GST (5% Trigger Calculated):</span>
+                    <strong id="cart-tax">₹0.00</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding-top:8px; border-top:1px solid #e2e8f0; font-size:1.15rem; color:#0f172a;">
+                    <strong>Grand Total:</strong>
+                    <strong id="cart-total" style="color:#ea580c;">₹0.00</strong>
+                </div>
+            </div>
+
+            <button id="submit-order-btn" class="btn btn-primary" style="width:100%; justify-content:center; padding:12px;" onclick="submitPOSOrder()" disabled>
+                <i class="fa-solid fa-receipt"></i> Place Order (Triggers Calculate Tax & Occupy Table)
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Active Orders List Awaiting Settlement -->
+<div class="card" style="margin-top:20px;">
+    <div class="card-title">
+        <span><i class="fa-solid fa-clock"></i> Active Ongoing Orders Awaiting Payment</span>
+        <span class="badge badge-warning">{{ active_orders|length }} Pending Settlement</span>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Order #</th>
+                    <th>Table / Type</th>
+                    <th>Customer</th>
+                    <th>Status</th>
+                    <th>Subtotal</th>
+                    <th>Tax</th>
+                    <th>Grand Total</th>
+                    <th>Settle Bill & Release Table</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for o in active_orders %}
+                <tr>
+                    <td><strong>{{ o.order_number }}</strong></td>
+                    <td>{{ o.table_number if o.table_number else o.order_type }}</td>
+                    <td>{{ o.customer_name if o.customer_name else 'Walk-in Guest' }}</td>
+                    <td><span class="badge badge-warning">{{ o.order_status }}</span></td>
+                    <td>₹{{ "%.2f"|format(o.subtotal) }}</td>
+                    <td>₹{{ "%.2f"|format(o.tax_amount) }}</td>
+                    <td><strong style="color:#0f172a;">₹{{ "%.2f"|format(o.grand_total) }}</strong></td>
+                    <td>
+                        <a href="{{ url_for('dbms') }}" class="btn btn-success btn-sm">
+                            <i class="fa-solid fa-credit-card"></i> Pay & Settle (ACID Demo)
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" style="text-align:center; color:#94a3b8; padding:20px;">
+                        No active orders at present. Use the panel above to place a new order!
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

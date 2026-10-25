@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}DineFlow - Restaurant Management & DBMS Showcase{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Phosphor or standard font icons placeholder -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- Academic Banner -->
+    <div class="top-banner">
+        <div>
+            <strong>IPS ACADEMY INDORE</strong> | Institute of Engineering & Science &bull; CSE Department (2026-27)
+        </div>
+        <div>
+            Project: <span class="student-badge">DineFlow DBMS</span> &nbsp;|&nbsp;
+            Student: <span class="student-badge">Gautam Soni (0808CS241120)</span>
+        </div>
+    </div>
+
+    <!-- Main Navigation Bar -->
+    <nav class="navbar">
+        <a href="{{ url_for('index') }}" class="brand">
+            <div class="brand-logo"><i class="fa-solid fa-utensils"></i></div>
+            <div class="brand-name">Dine<span>Flow</span></div>
+        </a>
+
+        <ul class="nav-links">
+            <li><a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}"><i class="fa-solid fa-gauge"></i> Dashboard</a></li>
+            <li><a href="{{ url_for('tables') }}" class="{% if request.endpoint == 'tables' %}active{% endif %}"><i class="fa-solid fa-chair"></i> Tables & Seating</a></li>
+            <li><a href="{{ url_for('menu') }}" class="{% if request.endpoint == 'menu' %}active{% endif %}"><i class="fa-solid fa-book-open"></i> Menu Catalog</a></li>
+            <li><a href="{{ url_for('pos') }}" class="{% if request.endpoint == 'pos' %}active{% endif %}"><i class="fa-solid fa-cash-register"></i> POS & Billing</a></li>
+            <li><a href="{{ url_for('kitchen') }}" class="{% if request.endpoint == 'kitchen' %}active{% endif %}"><i class="fa-solid fa-fire-burner"></i> Kitchen KOT</a></li>
+            <li><a href="{{ url_for('inventory') }}" class="{% if request.endpoint == 'inventory' %}active{% endif %}"><i class="fa-solid fa-boxes-stacked"></i> Inventory (BOM)</a></li>
+            <li><a href="{{ url_for('reports') }}" class="{% if request.endpoint == 'reports' %}active{% endif %}"><i class="fa-solid fa-chart-line"></i> Analytics</a></li>
+            <li><a href="{{ url_for('dbms') }}" class="dbms-highlight"><i class="fa-solid fa-database"></i> DBMS Concepts Lab</a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Body Container -->
+    <div class="container">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, msg in messages %}
+                    <div class="alert alert-{{ category if category != 'error' else 'danger' }}">
+                        <i class="fa-solid fa-circle-check"></i> {{ msg }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div style="margin-bottom:8px; font-weight:600; color:#e2e8f0;">
+            DineFlow: Intelligent Restaurant Management System & DBMS Demonstration
+        </div>
+        <div>
+            Developed by <strong>Gautam Soni</strong> | Enrollment No: <strong>0808CS241120</strong> &bull; B.Tech Computer Science & Engineering
+        </div>
+        <div style="margin-top:6px; color:#64748b; font-size:0.8rem;">
+            Database: SQLite / MariaDB Compatible &bull; Relational Constraints &bull; ACID Transactions &bull; Triggers &bull; Views &bull; Indexing
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

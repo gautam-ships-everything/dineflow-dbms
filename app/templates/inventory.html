@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventory & Recipe BOM - DineFlow{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Inventory Stock & Recipe Bill of Materials (BOM)</h1>
+        <p class="page-subtitle">Ingredient levels, automated low-stock detection view, restock operations, and dish ingredient mappings.</p>
+    </div>
+</div>
+
+<!-- Low Stock Banner if deficit exists -->
+{% if low_stock %}
+<div class="card" style="background:#fff1f2; border:1px solid #fecdd3; margin-bottom:20px;">
+    <div style="display:flex; align-items:center; gap:14px;">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size:1.8rem; color:#e11d48;"></i>
+        <div>
+            <strong style="color:#9f1239; font-size:1rem;">Active View Alert: <code>v_low_stock_alerts</code></strong>
+            <p style="color:#881337; font-size:0.85rem; margin-top:2px;">
+                The following ingredients have fallen on or below their minimum reorder thresholds:
+                {% for ls in low_stock %}
+                    <span class="badge badge-danger" style="margin-left:4px;">{{ ls.ingredient_name }} (Current: {{ ls.stock_quantity }} {{ ls.unit }} / Reorder: {{ ls.reorder_level }} {{ ls.unit }})</span>
+                {% endfor %}
+            </p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="grid-2">
+    <!-- Current Inventory Items -->
+    <div class="card">
+        <div class="card-title">
+            <span><i class="fa-solid fa-boxes-stacked"></i> Raw Ingredients & Stock Levels</span>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Ingredient</th>
+                        <th>In Stock</th>
+                        <th>Reorder Level</th>
+                        <th>Cost/Unit</th>
+                        <th>Quick Restock</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in inventory_items %}
+                    <tr>
+                        <td>
+                            <strong>{{ item.name }}</strong><br>
+                            <small style="color:#64748b;">Supplier: {{ item.supplier_name }}</small>
+                        </td>
+                        <td>
+                            <strong style="color:{% if item.stock_quantity <= item.reorder_level %}#dc2626{% else %}#16a34a{% endif %};">
+                                {{ item.stock_quantity }} {{ item.unit }}
+                            </strong>
+                        </td>
+                        <td>{{ item.reorder_level }} {{ item.unit }}</td>
+                        <td>₹{{ "%.2f"|format(item.cost_per_unit) }}</td>
+                        <td>
+                            <form action="{{ url_for('restock') }}" method="POST" style="display:flex; gap:4px;">
+                                <input type="hidden" name="ingredient_id" value="{{ item.ingredient_id }}">
+                                <input type="number" step="0.5" name="quantity" value="10" class="form-control" style="width:65px; padding:3px 6px; font-size:0.8rem;" required>
+                                <button type="submit" class="btn btn-secondary btn-sm" title="Restock Stock">
+                                    <i class="fa-solid fa-truck-ramp-box"></i> Add
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Recipe Bill of Materials (BOM) -->
+    <div class="card">
+        <div class="card-title">
+            <span><i class="fa-solid fa-mortar-pestle"></i> Recipe Bill of Materials (M:N BOM Table)</span>
+        </div>
+        <p style="font-size:0.85rem; color:#64748b; margin-bottom:12px;">
+            The <code>menu_recipes</code> table resolves the Many-to-Many relationship between Menu Offerings and Inventory Raw Materials. When an order transaction commits, stock is automatically subtracted based on these exact proportions.
+        </p>
+        <div class="table-responsive" style="max-height:480px; overflow-y:auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Menu Dish</th>
+                        <th>Required Ingredient</th>
+                        <th>Portion Consumption</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in recipes %}
+                    <tr>
+                        <td><strong>{{ r.menu_item }}</strong></td>
+                        <td>{{ r.ingredient_name }}</td>
+                        <td><span class="badge badge-purple">{{ r.quantity_required }} {{ r.unit }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

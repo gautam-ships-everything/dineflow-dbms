@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - DineFlow Restaurant Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Executive Operations Dashboard</h1>
+        <p class="page-subtitle">Real-time overview of restaurant tables, kitchen queue, inventory, and database metrics.</p>
+    </div>
+    <div style="display:flex; gap:10px;">
+        <a href="{{ url_for('pos') }}" class="btn btn-primary"><i class="fa-solid fa-plus"></i> New POS Order</a>
+        <a href="{{ url_for('dbms') }}" class="btn btn-secondary"><i class="fa-solid fa-server"></i> Live DB Inspector</a>
+    </div>
+</div>
+
+<!-- Stats Grid -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#ffedd5; color:#ea580c;">
+            <i class="fa-solid fa-indian-rupee-sign"></i>
+        </div>
+        <div>
+            <div class="stat-val">₹{{ "%.2f"|format(total_revenue) }}</div>
+            <div class="stat-label">Total Revenue</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#e0f2fe; color:#0284c7;">
+            <i class="fa-solid fa-receipt"></i>
+        </div>
+        <div>
+            <div class="stat-val">{{ total_orders }}</div>
+            <div class="stat-label">Total Orders</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#dcfce7; color:#16a34a;">
+            <i class="fa-solid fa-chair"></i>
+        </div>
+        <div>
+            <div class="stat-val">{{ active_tables }} / {{ total_tables }}</div>
+            <div class="stat-label">Tables Occupied</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon" style="background:#fee2e2; color:#dc2626;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div>
+            <div class="stat-val">{{ low_stock_count }} Items</div>
+            <div class="stat-label">Low Stock Alert</div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Row: Live Table Map and Recent Orders -->
+<div class="grid-2">
+    <!-- Live Dining Tables Map -->
+    <div class="card">
+        <div class="card-title">
+            <span><i class="fa-solid fa-table-cells"></i> Live Floor Plan (Auto-synced via Triggers)</span>
+            <a href="{{ url_for('tables') }}" class="btn btn-secondary btn-sm">Manage Tables</a>
+        </div>
+        <div class="floor-grid">
+            {% for t in tables %}
+            <div class="table-box {{ t.current_status|lower }}">
+                <div class="tbl-num">{{ t.table_number }}</div>
+                <div class="tbl-sec">{{ t.seating_section }} &bull; {{ t.capacity }} seats</div>
+                <div style="margin-top:8px;">
+                    {% if t.current_status == 'Available' %}
+                        <span class="badge badge-success">Available</span>
+                    {% elif t.current_status == 'Occupied' %}
+                        <span class="badge badge-danger">Occupied</span>
+                        <div style="font-size:0.75rem; font-weight:600; margin-top:4px; color:#991b1b;">
+                            {{ t.order_number }}
+                        </div>
+                    {% else %}
+                        <span class="badge badge-warning">Reserved</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Recent Orders & Audit Log Preview -->
+    <div>
+        <div class="card">
+            <div class="card-title">
+                <span><i class="fa-solid fa-clock-rotate-left"></i> Recent Orders</span>
+                <a href="{{ url_for('pos') }}" class="btn btn-secondary btn-sm">View All</a>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Table / Type</th>
+                            <th>Status</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in recent_orders %}
+                        <tr>
+                            <td><strong>{{ o.order_number }}</strong></td>
+                            <td>{{ o.table_number if o.table_number else o.order_type }}</td>
+                            <td>
+                                <span class="badge {% if o.order_status == 'Completed' %}badge-success{% elif o.order_status == 'In-Kitchen' %}badge-warning{% else %}badge-info{% endif %}">
+                                    {{ o.order_status }}
+                                </span>
+                            </td>
+                            <td>₹{{ "%.2f"|format(o.grand_total) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Live DB Trigger Audit Activity -->
+        <div class="card" style="margin-bottom:0;">
+            <div class="card-title">
+                <span><i class="fa-solid fa-bolt" style="color:#f59e0b;"></i> Live DBMS Trigger Activity</span>
+                <a href="{{ url_for('dbms') }}" class="btn btn-secondary btn-sm">Full Audit Trail</a>
+            </div>
+            <div style="font-size:0.85rem;">
+                {% for log in audit_logs %}
+                <div style="padding:7px 0; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between;">
+                    <div>
+                        <span class="badge badge-purple" style="font-size:0.7rem;">{{ log.entity_name }}</span>
+                        <span style="font-weight:600; color:#334155;">{{ log.operation }}:</span>
+                        <span style="color:#64748b;">{{ log.message }}</span>
+                    </div>
+                    <div style="font-size:0.75rem; color:#94a3b8; white-space:nowrap; margin-left:10px;">
+                        {{ log.timestamp[11:19] }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block title %}Sales & Analytical Reports - DineFlow{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Restaurant Business Analytics & SQL Views</h1>
+        <p class="page-subtitle">Aggregated metrics, daily revenues, top performing dishes, and waiter sales performance.</p>
+    </div>
+</div>
+
+<!-- Daily Sales Breakdown View -->
+<div class="card">
+    <div class="card-title">
+        <span><i class="fa-solid fa-calendar-day"></i> Daily Sales Breakdown (<code>v_daily_sales_summary</code>)</span>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Completed Orders</th>
+                    <th>Food Subtotal</th>
+                    <th>GST Collected</th>
+                    <th>Discounts</th>
+                    <th>Gross Revenue</th>
+                    <th>Avg Order Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in daily_sales %}
+                <tr>
+                    <td><strong>{{ d.sale_date }}</strong></td>
+                    <td><span class="badge badge-info">{{ d.total_orders }} Orders</span></td>
+                    <td>₹{{ "%.2f"|format(d.total_subtotal) }}</td>
+                    <td>₹{{ "%.2f"|format(d.total_tax) }}</td>
+                    <td>₹{{ "%.2f"|format(d.total_discount) }}</td>
+                    <td><strong style="color:#16a34a; font-size:1rem;">₹{{ "%.2f"|format(d.gross_revenue) }}</strong></td>
+                    <td>₹{{ "%.2f"|format(d.average_order_value) }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align:center; color:#94a3b8; padding:15px;">No historical completed orders yet. Complete an order to generate sales summary.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="grid-2">
+    <!-- Top Selling Dishes View -->
+    <div class="card">
+        <div class="card-title">
+            <span><i class="fa-solid fa-trophy" style="color:#f59e0b;"></i> Top Selling Dishes (<code>v_top_selling_items</code>)</span>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Dish Name</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Units Sold</th>
+                        <th>Revenue</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in top_items %}
+                    <tr>
+                        <td><strong>{{ item.item_name }}</strong></td>
+                        <td><span class="badge badge-purple">{{ item.category_name }}</span></td>
+                        <td>₹{{ "%.2f"|format(item.price) }}</td>
+                        <td><strong style="color:#0284c7;">{{ item.total_quantity_sold }}</strong></td>
+                        <td><strong style="color:#16a34a;">₹{{ "%.2f"|format(item.total_revenue_generated) }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Waiter / Staff Performance View -->
+    <div class="card">
+        <div class="card-title">
+            <span><i class="fa-solid fa-user-tie" style="color:#4f46e5;"></i> Server Performance (<code>v_staff_performance</code>)</span>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Staff Name</th>
+                        <th>Role</th>
+                        <th>Orders Served</th>
+                        <th>Total Revenue Handled</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in staff_perf %}
+                    <tr>
+                        <td><strong>{{ s.staff_name }}</strong></td>
+                        <td><span class="badge badge-info">{{ s.role }}</span></td>
+                        <td>{{ s.total_orders_handled }} Orders</td>
+                        <td><strong style="color:#16a34a;">₹{{ "%.2f"|format(s.total_revenue_handled) }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

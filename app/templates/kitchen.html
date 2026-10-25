@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}Kitchen Order Tickets (KDS) - DineFlow{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Kitchen Order Ticket (KOT) Display System</h1>
+        <p class="page-subtitle">Live orders channeled to chefs with preparation times, special instructions, and status updates.</p>
+    </div>
+    <div>
+        <span class="badge badge-warning" style="font-size:0.9rem; padding:8px 14px;">
+            <i class="fa-solid fa-fire"></i> {{ tickets|length }} Items in Preparation
+        </span>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title">
+        <span><i class="fa-solid fa-utensils"></i> Live Kitchen Queue</span>
+    </div>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Order #</th>
+                    <th>Table / Destination</th>
+                    <th>Dish / Item Name</th>
+                    <th>Qty</th>
+                    <th>Dietary Type</th>
+                    <th>Target Prep Time</th>
+                    <th>Kitchen Status</th>
+                    <th>Update Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tickets %}
+                <tr>
+                    <td><strong>{{ t.order_number }}</strong></td>
+                    <td>
+                        <span class="badge badge-info">{{ t.table_number if t.table_number else t.order_type }}</span>
+                    </td>
+                    <td>
+                        <strong style="color:#0f172a;">{{ t.item_name }}</strong>
+                        {% if t.customization_notes %}
+                        <div style="font-size:0.8rem; color:#ea580c;"><i class="fa-solid fa-comment-dots"></i> {{ t.customization_notes }}</div>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge badge-purple" style="font-size:0.85rem;">{{ t.quantity }}x</span></td>
+                    <td>
+                        {% if t.dietary_type == 'Veg' %}
+                            <span class="badge badge-success">Veg</span>
+                        {% elif t.dietary_type == 'Non-Veg' %}
+                            <span class="badge badge-danger">Non-Veg</span>
+                        {% else %}
+                            <span class="badge badge-info">Vegan</span>
+                        {% endif %}
+                    </td>
+                    <td><i class="fa-regular fa-clock"></i> {{ t.preparation_time_mins }} mins</td>
+                    <td>
+                        {% if t.kitchen_status == 'Queued' %}
+                            <span class="badge badge-warning">Queued</span>
+                        {% elif t.kitchen_status == 'Cooking' %}
+                            <span class="badge badge-purple">Cooking</span>
+                        {% elif t.kitchen_status == 'Ready' %}
+                            <span class="badge badge-success">Ready</span>
+                        {% else %}
+                            <span class="badge badge-info">Served</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form action="{{ url_for('update_kitchen_status') }}" method="POST" style="display:inline-flex; gap:6px;">
+                            <input type="hidden" name="order_item_id" value="{{ t.order_item_id }}">
+                            <select name="status" class="form-control" style="width:110px; padding:4px 8px; font-size:0.8rem;">
+                                <option value="Queued" {% if t.kitchen_status == 'Queued' %}selected{% endif %}>Queued</option>
+                                <option value="Cooking" {% if t.kitchen_status == 'Cooking' %}selected{% endif %}>Cooking</option>
+                                <option value="Ready" {% if t.kitchen_status == 'Ready' %}selected{% endif %}>Ready</option>
+                                <option value="Served" {% if t.kitchen_status == 'Served' %}selected{% endif %}>Served</option>
+                            </select>
+                            <button type="submit" class="btn btn-secondary btn-sm">Set</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" style="text-align:center; padding:30px; color:#94a3b8;">
+                        <i class="fa-solid fa-circle-check" style="font-size:2rem; color:#10b981; display:block; margin-bottom:10px;"></i>
+                        All kitchen orders are served! No items pending in queue.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

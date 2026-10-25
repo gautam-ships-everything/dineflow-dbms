@@ -1,0 +1,311 @@
+{% extends 'base.html' %}
+
+{% block title %}DBMS Concepts Showcase & Live Lab - DineFlow{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fa-solid fa-database" style="color:#4f46e5;"></i> DBMS Concepts Demonstration Lab</h1>
+        <p class="page-subtitle">Interactive demonstration of Relational Modeling, Constraints, ACID Transactions, Triggers, Views, and Index Optimization.</p>
+    </div>
+    <div>
+        <span class="badge badge-purple" style="font-size:0.85rem; padding:6px 12px;">
+            Candidate: <strong>Gautam Soni (0808CS241120)</strong>
+        </span>
+    </div>
+</div>
+
+<!-- Navigation Tabs for DBMS Concepts -->
+<div class="card" style="padding-bottom:12px; margin-bottom:16px;">
+    <div class="dbms-tab-header">
+        <button id="btn-tab-acid" class="dbms-tab-btn active" onclick="switchDbmsTab('tab-acid')">
+            <i class="fa-solid fa-shield-halved"></i> 1. ACID Transactions Simulator
+        </button>
+        <button id="btn-tab-triggers" class="dbms-tab-btn" onclick="switchDbmsTab('tab-triggers')">
+            <i class="fa-solid fa-bolt"></i> 2. Active Triggers & Audit Trail
+        </button>
+        <button id="btn-tab-views" class="dbms-tab-btn" onclick="switchDbmsTab('tab-views')">
+            <i class="fa-solid fa-eye"></i> 3. Database Views (Abstraction)
+        </button>
+        <button id="btn-tab-schema" class="dbms-tab-btn" onclick="switchDbmsTab('tab-schema')">
+            <i class="fa-solid fa-table"></i> 4. Schema & Integrity Constraints
+        </button>
+        <button id="btn-tab-sql" class="dbms-tab-btn" onclick="switchDbmsTab('tab-sql')">
+            <i class="fa-solid fa-terminal"></i> 5. Live SQL Console & Index Plan
+        </button>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- TAB 1: ACID TRANSACTIONS SIMULATOR -->
+<!-- ========================================================================= -->
+<div id="tab-acid" class="dbms-tab-content">
+    <div class="card">
+        <div class="card-title">
+            <span><i class="fa-solid fa-shield-halved" style="color:#4f46e5;"></i> ACID Properties in Practice: Multi-Table Checkout Transaction</span>
+            <span class="badge badge-info">Atomic Commit / Rollback</span>
+        </div>
+        
+        <p style="font-size:0.9rem; color:#475569; line-height:1.6; margin-bottom:18px;">
+            A restaurant checkout involves mutating multiple tables simultaneously:
+            (1) verifying order, (2) inserting payment record into <code>payments</code>, (3) deducting raw ingredient stock from <code>inventory_items</code> via <code>menu_recipes</code>, (4) setting order status to 'Completed', (5) releasing table to 'Available', and (6) crediting customer loyalty points.
+            Under DBMS <strong>Atomicity</strong> and <strong>Consistency</strong>, either ALL of these steps persist, or if any error occurs (network failure, stock constraint, gateway timeout), <strong>all modifications are completely rolled back</strong>.
+        </p>
+
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:20px; margin-bottom:20px;">
+            <div style="display:grid; grid-template-columns: 2fr 1fr; gap:16px; margin-bottom:16px;">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Select Active Order for Checkout</label>
+                    <select id="acid-order-select" class="form-control">
+                        {% for o in active_orders %}
+                        <option value="{{ o.order_id }}">Order #{{ o.order_number }} - Total: ₹{{ "%.2f"|format(o.grand_total) }} (Status: {{ o.order_status }})</option>
+                        {% else %}
+                        <option value="">-- No active orders. Go to POS and place an order first! --</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Payment Mode</label>
+                    <select id="acid-method-select" class="form-control">
+                        <option value="UPI">UPI (Instant Transfer)</option>
+                        <option value="Credit Card">Credit Card</option>
+                        <option value="Cash">Cash</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:12px;">
+                <button class="btn btn-success" style="flex:1; justify-content:center; padding:12px;" onclick="runAcidSimulation(false)">
+                    <i class="fa-solid fa-circle-check"></i> Test Happy Path (COMMIT Transaction)
+                </button>
+                <button class="btn btn-danger" style="flex:1; justify-content:center; padding:12px;" onclick="runAcidSimulation(true)">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Simulate Failure (ROLLBACK Transaction)
+                </button>
+            </div>
+        </div>
+
+        <div id="acid-result-box" style="display:none; background:#ffffff; border:1px solid #cbd5e1; border-radius:10px; padding:18px;"></div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- TAB 2: ACTIVE TRIGGERS & AUDIT TRAIL -->
+<!-- ========================================================================= -->
+<div id="tab-triggers" class="dbms-tab-content" style="display:none;">
+    <div class="card">
+        <div class="card-title">
+            <span><i class="fa-solid fa-bolt" style="color:#f59e0b;"></i> Active DBMS Triggers (Event-Condition-Action)</span>
+            <span class="badge badge-purple">{{ triggers_meta|length }} Active Triggers</span>
+        </div>
+        <p style="font-size:0.9rem; color:#475569; margin-bottom:14px;">
+            Triggers enforce active business rules directly within the database engine, eliminating reliance on application code and preventing inconsistent states.
+        </p>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Trigger Name</th>
+                        <th>Target Table</th>
+                        <th>Trigger Definition & Logic</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trg in triggers_meta %}
+                    <tr>
+                        <td><strong style="color:#4f46e5;">{{ trg.name }}</strong></td>
+                        <td><span class="badge badge-info">{{ trg.tbl_name }}</span></td>
+                        <td>
+                            <pre style="background:#0f172a; color:#38bdf8; padding:8px 12px; border-radius:6px; font-size:0.75rem; max-height:120px; overflow-y:auto; white-space:pre-wrap;">{{ trg.sql }}</pre>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Live Audit Trail Log -->
+    <div class="card">
+        <div class="card-title">
+            <span><i class="fa-solid fa-fingerprint"></i> Trigger-Populated Audit Trail (<code>audit_logs</code> Table)</span>
+            <span class="badge badge-success">Automated Tracking</span>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Log ID</th>
+                        <th>Table</th>
+                        <th>Operation</th>
+                        <th>Record ID</th>
+                        <th>Message</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in audit_logs %}
+                    <tr>
+                        <td>#{{ log.log_id }}</td>
+                        <td><span class="badge badge-purple">{{ log.entity_name }}</span></td>
+                        <td>
+                            <span class="badge {% if log.operation == 'INSERT' %}badge-success{% elif log.operation == 'UPDATE' %}badge-warning{% else %}badge-danger{% endif %}">
+                                {{ log.operation }}
+                            </span>
+                        </td>
+                        <td>{{ log.record_id if log.record_id else '-' }}</td>
+                        <td>{{ log.message }}</td>
+                        <td><small style="color:#64748b;">{{ log.timestamp }}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- TAB 3: DATABASE VIEWS -->
+<!-- ========================================================================= -->
+<div id="tab-views" class="dbms-tab-content" style="display:none;">
+    <div class="card">
+        <div class="card-title">
+            <span><i class="fa-solid fa-eye" style="color:#0284c7;"></i> Database Views: Encapsulation & Precomputed Projections</span>
+            <span class="badge badge-info">{{ views_meta|length }} Views Defined</span>
+        </div>
+        <p style="font-size:0.9rem; color:#475569; margin-bottom:16px;">
+            Views provide virtual tables computed on the fly through complex multi-table joins and aggregation queries, enabling role-based data security and simplified application code.
+        </p>
+
+        {% for v in views_meta %}
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:16px; margin-bottom:18px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <strong style="color:#0f172a; font-size:1rem;"><i class="fa-solid fa-table-list"></i> View: <code>{{ v.name }}</code></strong>
+                <button class="btn btn-secondary btn-sm" onclick="loadSampleQuery('SELECT * FROM {{ v.name }}')">
+                    <i class="fa-solid fa-play"></i> Query in Console
+                </button>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="data-table" style="background:white; font-size:0.85rem;">
+                    <thead>
+                        <tr>
+                            {% for col in v.columns %}
+                            <th>{{ col }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in v.sample %}
+                        <tr>
+                            {% for col in v.columns %}
+                            <td>{{ row[col] if row[col] is not none else 'NULL' }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="{{ v.columns|length }}" style="text-align:center; color:#94a3b8; padding:10px;">No rows currently returned by view.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- TAB 4: SCHEMA & CONSTRAINTS -->
+<!-- ========================================================================= -->
+<div id="tab-schema" class="dbms-tab-content" style="display:none;">
+    <div class="card">
+        <div class="card-title">
+            <span><i class="fa-solid fa-network-wired" style="color:#10b981;"></i> Relational Schema Dictionary ({{ tables_meta|length }} Tables)</span>
+            <span class="badge badge-success">3NF / BCNF Normalized</span>
+        </div>
+        
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap:16px;">
+            {% for t in tables_meta %}
+            <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:14px; box-shadow:var(--shadow-sm);">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f1f5f9; padding-bottom:8px; margin-bottom:10px;">
+                    <strong style="font-size:0.95rem; color:#0f172a;"><i class="fa-solid fa-table"></i> {{ t.name }}</strong>
+                    <span class="badge badge-purple">{{ t.count }} records</span>
+                </div>
+
+                <div style="font-size:0.8rem; margin-bottom:8px;">
+                    <strong>Columns:</strong>
+                    <ul style="list-style:none; padding:0; margin-top:4px;">
+                        {% for c in t.columns %}
+                        <li style="padding:2px 0; color:#334155;">
+                            <code>{{ c[1] }}</code> ({{ c[2] }})
+                            {% if c[5] == 1 %}<span class="badge badge-warning" style="font-size:0.65rem;">PK</span>{% endif %}
+                            {% if c[3] == 1 %}<span class="badge badge-secondary" style="font-size:0.65rem;">NOT NULL</span>{% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                {% if t.fks %}
+                <div style="font-size:0.75rem; color:#4f46e5; border-top:1px dashed #e2e8f0; padding-top:6px;">
+                    <strong>Foreign Keys:</strong>
+                    {% for fk in t.fks %}
+                    <div>&bull; <code>{{ fk[3] }}</code> &rarr; <code>{{ fk[2] }}({{ fk[4] }})</code></div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- TAB 5: INTERACTIVE SQL CONSOLE & EXPLAIN QUERY PLAN -->
+<!-- ========================================================================= -->
+<div id="tab-sql" class="dbms-tab-content" style="display:none;">
+    <div class="card">
+        <div class="card-title">
+            <span><i class="fa-solid fa-terminal" style="color:#0ea5e9;"></i> Interactive SQL Query Console & Query Optimizer</span>
+        </div>
+        <p style="font-size:0.85rem; color:#64748b; margin-bottom:12px;">
+            Execute custom SELECT queries or run <code>EXPLAIN QUERY PLAN</code> to verify how SQLite's query optimizer utilizes B-Tree indexes (e.g. <code>idx_orders_customer</code>, <code>idx_order_items_order</code>).
+        </p>
+
+        <!-- Sample Query Quick Buttons -->
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+            <button class="btn btn-secondary btn-sm" onclick="loadSampleQuery('SELECT o.order_number, t.table_number, c.name AS customer, o.grand_total, o.created_at FROM orders o INNER JOIN dining_tables t ON o.table_id = t.table_id INNER JOIN customers c ON o.customer_id = c.customer_id;')">
+                <i class="fa-solid fa-code-fork"></i> 3-Table Inner Join
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="loadSampleQuery('SELECT c.category_name, COUNT(m.item_id) AS total_items, ROUND(AVG(m.price), 2) AS avg_price FROM categories c JOIN menu_items m ON c.category_id = m.category_id GROUP BY c.category_name HAVING avg_price > 100;')">
+                <i class="fa-solid fa-calculator"></i> Group By & Having
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="loadSampleQuery('EXPLAIN QUERY PLAN SELECT * FROM order_items WHERE order_id = 1;')">
+                <i class="fa-solid fa-magnifying-glass-chart"></i> Index Plan (idx_order_items_order)
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="loadSampleQuery('SELECT name, price FROM menu_items WHERE price > (SELECT AVG(price) FROM menu_items);')">
+                <i class="fa-solid fa-filter"></i> Subquery (> AVG Price)
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="loadSampleQuery('SELECT * FROM v_daily_sales_summary;')">
+                <i class="fa-solid fa-eye"></i> Query Sales View
+            </button>
+        </div>
+
+        <textarea id="sql-query-editor" class="sql-editor" spellcheck="false">SELECT o.order_number, t.table_number, c.name AS customer, o.grand_total, o.created_at
+FROM orders o
+INNER JOIN dining_tables t ON o.table_id = t.table_id
+INNER JOIN customers c ON o.customer_id = c.customer_id;</textarea>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+            <div id="sql-meta-container"></div>
+            <button class="btn btn-primary" onclick="runInteractiveSql()">
+                <i class="fa-solid fa-play"></i> Execute Query
+            </button>
+        </div>
+
+        <div id="sql-results-container" class="table-responsive" style="margin-top:16px; min-height:120px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;">
+            <div style="padding:20px; text-align:center; color:#94a3b8;">Execute a query to see tabular output.</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
